@@ -31,3 +31,8 @@ demuxed/
 
 # file to save data to during a run
 /tmp/
+RAMPART.code-workspace
+RAMPART.iml
+RAMPART.ipr
+RAMPART.iws
+yarn.lock
