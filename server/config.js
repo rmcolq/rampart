@@ -168,5 +168,6 @@ const updateConfigWithNewBarcodes = () => {
 module.exports = {
     getInitialConfig,
     modifyConfig,
-    updateConfigWithNewBarcodes
+    updateConfigWithNewBarcodes,
+    ensurePathExists
 };

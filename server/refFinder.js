@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Deque = require("collections/deque");
 const { getReadTime } = require('./readTimes');
+const { ensurePathExists } = require( './config.js');
 const { prettyPath, warn, verbose } = require('./utils');
 
 /**
@@ -69,6 +70,7 @@ const ref_finder = async () => {
         isRunning = true;
         let results;
         const [datastoreAddress, fileToClassify] = refFinderQueue.shift();
+        ensurePathExists(fileToClassify,make=true);
         try {
             verbose(`[ref_finder] queue length: ${refFinderQueue.length+1}. Finding reference for ${prettyPath(fileToClassify)}`);
             //results = await call_python_ref_finder(fileToClassify);
