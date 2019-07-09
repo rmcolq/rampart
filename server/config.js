@@ -33,6 +33,22 @@ const getReferenceNames = (referencePanelPath) => {
     });
 }
 
+const getParentDir = (filePath, dir="") => {
+  if (dir) {
+    return filePath.substring(0,filePath.lastIndexOf(dir));
+  } else {
+    return filePath.substring(0, filePath.lastIndexOf("/") + 1);
+  }
+}
+
+const getFileNameRoot = (filePath) => {
+  return filePath.substring(filePath.lastIndexOf("/")+1,filePath.lastIndexOf("."));
+}
+
+const getFileExtension = (filePath) => {
+  return filePath.substring(filePath.lastIndexOf(".")+1);
+}
+
 /* return format is array of {label: <label for display>, value: <path string>} */
 const scanExampleConfigs = () => {
   const dir = path.join(__dirname, "..", "assets/includedConfigs");
@@ -169,5 +185,7 @@ module.exports = {
     getInitialConfig,
     modifyConfig,
     updateConfigWithNewBarcodes,
-    ensurePathExists
+    ensurePathExists,
+    getParentDir,
+    getFileNameRoot,
 };

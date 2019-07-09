@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const Deque = require("collections/deque");
 const { getReadTime } = require('./readTimes');
-const { ensurePathExists } = require( './config.js');
+const { ensurePathExists, getParentDir, getFileNameRoot } = require( './config.js');
 const { prettyPath, warn, verbose } = require('./utils');
 
 /**
@@ -20,10 +20,10 @@ const { prettyPath, warn, verbose } = require('./utils');
  */
 const refFinderQueue = new Deque();
 
-refFinderQueue.observeRangeChange(() => {ref_finder();});
+refFinderQueue.observeRangeChange(() => {refFinder();});
 const addToRefFinderQueue = (thing) => refFinderQueue.push(thing);
 
-/*const call_python_ref_finder = (fastq) => new Promise((resolve, reject) => {
+/*const call_python_refFinder = (fastq) => new Promise((resolve, reject) => {
     const pyprog = spawn('python3', [
         "./server/map_single_fastq.py",
         "-c", global.config.coordinateReferencePath,
@@ -52,17 +52,17 @@ const addToRefFinderQueue = (thing) => refFinderQueue.push(thing);
 });*/
 
 let isRunning = false; // only want one mapping thread at a time!
-const ref_finder = async () => {
+const refFinder = async () => {
 
-    /* the ref_finder can _only_ run _if_ we have defined both a reference panel and a
+    /* the refFinder can _only_ run _if_ we have defined both a reference panel and a
     "main" reference config. (Perhaps this could be relaxed in the future) */
     /*if (!(global.config.reference && global.config.referencePanel.length)) {
-        verbose(`Cannot start ref_finder without main reference (provided: ${!!global.config.reference}) AND reference panel (provided: ${!!global.config.referencePanel.length})`);
+        verbose(`Cannot start refFinder without main reference (provided: ${!!global.config.reference}) AND reference panel (provided: ${!!global.config.referencePanel.length})`);
         return;
     }*/
 
     if (isRunning) {
-        verbose("[ref_finder] called but already running");
+        verbose("[refFinder] called but already running");
         return;
     }
 
@@ -70,19 +70,22 @@ const ref_finder = async () => {
         isRunning = true;
         let results;
         const [datastoreAddress, fileToClassify] = refFinderQueue.shift();
-        ensurePathExists(fileToClassify,make=true);
         try {
-            verbose(`[ref_finder] queue length: ${refFinderQueue.length+1}. Finding reference for ${prettyPath(fileToClassify)}`);
-            //results = await call_python_ref_finder(fileToClassify);
+            verbose(`[refFinder] queue length: ${refFinderQueue.length+1}. Finding reference for ${prettyPath(fileToClassify)}`);
+            var parentDir = getParentDir(fileToClassify, dir="demuxed");
+            var fileNameRoot = getFileNameRoot(fileToClassify);
+            verbose(`[refFinder] found (parentDir, fileNameRoot): (${parentDir}, ${fileNameRoot}).`);
+            ensurePathExists(parentDir+"classified/"+fileNameRoot+"/", true);
+            //results = await call_python_refFinder(fileToClassify);
             //global.datastore.addMappedFastq(datastoreAddress, results);
-            verbose(`[ref_finder] Found reference for ${prettyPath(fileToClassify)}. Read time: ${getReadTime(fileToClassify)}.`);
+            verbose(`[refFinder] Found reference for ${prettyPath(fileToClassify)}. Read time: ${getReadTime(fileToClassify)}.`);
         } catch (err) {
             console.trace(err);
             warn(`Finding reference for ${fileToClassify.split("/").slice(-1)[0]}: ${err}`);
         }
         isRunning = false;
-        ref_finder(); // recurse
+        refFinder(); // recurse
     }
 }
 
-module.exports = {ref_finder, addToRefFinderQueue};
+module.exports = {refFinder, addToRefFinderQueue};

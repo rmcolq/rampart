@@ -2,8 +2,8 @@ import React, {useState, useEffect} from 'react';
 
 
 const ChooseBasecalledDirectory = ({socket, changePage}) => {
-  const [basecalledPath, basecalledPathSetter] = useState("/Users/naboo/github/artic-network/rampart/examples/EBOV/data/basecalled");
-  const [demuxedPath, demuxedPathSetter] = useState("/Users/naboo/github/artic-network/rampart/examples/EBOV/data/demuxed");
+  const [basecalledPath, basecalledPathSetter] = useState("/Users/rmcolq/Work/git/rampart/examples/EBOV/data/basecalled");
+  const [demuxedPath, demuxedPathSetter] = useState("/Users/rmcolq/Work/git/rampart/examples/EBOV/data/demuxed");
   const [basecalledPathExists, basecalledPathExistsSetter] = useState(false);
   const [demuxedPathExists, demuxedPathExistsSetter] = useState(false);
   useEffect(() => {
