@@ -1,0 +1,46 @@
+configfile: "config.yaml"
+workdir: config['workdir']
+
+SAMPLES, = [config['sample']]
+
+
+rule all:
+    input:
+        expand("classified/{sample}.kraken", sample=SAMPLES),
+
+rule get_kraken_db:
+    input:
+        config['kraken_db']
+    output:
+        directory("classified/kraken_db")
+    shell:
+        'ln -s "{input}" {output}'
+
+rule prepare_krona:
+    output:
+        "classified/taxonomy.tab"
+    shell:
+        """
+        ktpath=$(which ktImportTaxonomy) 
+        ktroot=${{ktpath%?????????????????}}     
+        bash $ktroot/../opt/krona/updateTaxonomy.sh
+        ln -s $ktroot/../opt/krona/taxonomy/taxonomy.tab classified/taxonomy.tab
+        """
+    
+rule kraken_classify:
+    input:
+        db="classified/kraken_db",
+        demuxed="demuxed/{sample}.fastq",
+        taxonomy="classified/taxonomy.tab"
+    output:
+        kraken="classified/{sample}.kraken",
+    shell:
+        """
+        kraken2 --db {input.db} \
+            --memory-mapping \
+            {input.demuxed} \
+            > {output.kraken};
+        cat {output.kraken} >> classified/all.kraken;
+        ktImportTaxonomy -q 2 -t 3 classified/all.kraken -o classified/all_krona.html &> classified/krona.log
+        """
+
