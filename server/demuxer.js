@@ -4,6 +4,7 @@ const Deque = require("collections/deque");
 const { setReadTime, getReadTime } = require("./readTimes");
 const { verbose, warn } = require("./utils");
 const { addToMappingQueue } = require("./mapper");
+const { addToClassifyingQueue } = require("./classifier");
 
 /**
  * This file defines the deque handler, which processes FASTQ files
@@ -107,6 +108,7 @@ const demuxer = async () => {
             const datastoreAddress = global.datastore.addDemuxedFastq(fileToDemuxBasename, barcodeDemuxCounts, timestamp);
             verbose(`[demuxer] ${fileToDemuxBasename} demuxed. Read time: ${timestamp}`);
             addToMappingQueue([datastoreAddress, fastqToWrite]);
+            addToClassifyingQueue([datastoreAddress, fastqToWrite]);
         } catch (err) {
           console.trace(err);
           warn(`Demuxing / extracting time of ${fileToDemuxBasename}: ${err}`);

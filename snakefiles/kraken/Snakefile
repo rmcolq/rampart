@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+configfile: "snakefiles/kraken/config.yaml"
 workdir: config['workdir']
 
 SAMPLES, = [config['sample']]

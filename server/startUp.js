@@ -2,6 +2,7 @@ const fs = require('fs')
 const path = require('path')
 const { promisify } = require('util');
 const { save_coordinate_reference_as_fasta, addToMappingQueue } = require("./mapper");
+const { addToClassifyingQueue } = require("./classifier");
 const { addToDemuxQueue } = require("./demuxer");
 const readdir = promisify(fs.readdir);
 const { setReadTime, getReadTime, setEpochOffset } = require('./readTimes');
@@ -68,6 +69,7 @@ const startUp = async ({emptyDemuxed=false}={}) => {
     .sort((a, b) => getReadTime(a)>getReadTime(b) ? 1 : -1)
     .forEach((f) => {
       addToMappingQueue(f);
+      addToClassifyingQueue(f);
       global.fastqsSeen.add(path.basename(f));
     })
 

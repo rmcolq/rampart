@@ -20,13 +20,17 @@ const { prettyPath, warn, verbose } = require('./utils');
 const classifyingQueue = new Deque();
 
 classifyingQueue.observeRangeChange(() => {classifier();});
-const addToclassifyingQueue = (thing) => classifyingQueue.push(thing);
+const addToClassifyingQueue = (thing) => classifyingQueue.push(thing);
 
 const call_snakemake_classifier = (fastq) => new Promise((resolve, reject) => {
-    const basename = path.basename(fastq);
+    const basename = path.basename(fastq, ".fastq");
     const workDir = path.dirname(global.config.demuxedPath);
+    const snakefile = path.join(__dirname, "..", "snakefiles/kraken/Snakefile");
+    console.log(snakefile);
+    console.log(workDir);
+    console.log(basename);
     const pyprog = spawn('snakemake', [
-        "--snakefile snakefiles/kraken/Snakefile",
+        "--snakefile", snakefile,
         "--config",
         "workdir=" + workDir,
         "sample="+ basename
@@ -80,5 +84,5 @@ const classifier = async () => {
 
 module.exports = {
     classifier,
-    addToclassifyingQueue,
+    addToClassifyingQueue,
 }
