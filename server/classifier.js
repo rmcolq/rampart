@@ -46,10 +46,10 @@ const call_snakemake_classifier = (fastq) => new Promise((resolve, reject) => {
     }
 
     pyprog.on('close', (code) => {
-        // console.log(`Python script finished. Exit code ${code}`);
+        console.log(`Snakemake script finished. Exit code ${code}`);
         if (code === 0) {
             if (stderr) console.log(stderr);
-            resolve(JSON.parse(stdout));
+            resolve(code);
         } else {
             reject(stderr)
         }
@@ -71,11 +71,11 @@ const classifier = async () => {
         try {
             verbose(`[classifier] queue length: ${classifyingQueue.length+1}. classifying ${prettyPath(fileToClassify)}`);
             results = await call_snakemake_classifier(fileToClassify);
-            global.datastore.addClassifiedFastq(datastoreAddress, results);
+            //global.datastore.addClassifiedFastq(datastoreAddress, results);
             verbose(`[classifier] Classified ${prettyPath(fileToClassify)}. Read time: ${getReadTime(fileToClassify)}.`);
         } catch (err) {
             console.trace(err);
-            warn(`classifying ${fileToClassify.split("/").slice(-1)[0]}: ${err}`);
+            //warn(`classifying ${fileToClassify.split("/").slice(-1)[0]}: ${err}`);
         }
         isRunning = false;
         classifier(); // recurse

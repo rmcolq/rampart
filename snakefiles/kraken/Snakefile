@@ -21,10 +21,12 @@ rule prepare_krona:
         "classified/taxonomy.tab"
     shell:
         """
+        if [ ! -f classified/taxonomy.tab ]; then
         ktpath=$(which ktImportTaxonomy) 
         ktroot=${{ktpath%?????????????????}}     
         bash $ktroot/../opt/krona/updateTaxonomy.sh
         ln -s $ktroot/../opt/krona/taxonomy/taxonomy.tab classified/taxonomy.tab
+        fi
         """
     
 rule kraken_classify:
