@@ -397,6 +397,31 @@ th.rotate {
 .panelContainer > .infoRow > *:last-child {
   padding-right: 10px;
 }
+
+.panelContainer > .infoRowKrona {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.panelContainer > .infoRowKrona > span,
+.panelContainer > .infoRowKrona > div {
+  font-weight: bold;
+  font-size: 1.3em;
+}
+.panelContainer > .infoRowKrona > *:first-child {
+  padding-top: 2px;
+  padding-left: 10px;
+  flex-basis: 15%; /* it's a child of a flexbox */
+  display: flex; /* to align the icon & text nicely */
+  align-items: center;
+}
+.panelContainer > .infoRowKrona > *:first-child > span {
+  padding-left: 5px; /* space between sample text & icon */
+}
+
+.panelContainer > .infoRowKrona > *:last-child {
+  padding-right: 10px;
+}
 .panelFlexRow {
   display: flex;
   flex-direction: row;

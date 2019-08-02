@@ -2,7 +2,8 @@ import React, {useState} from 'react';
 import PropTypes from "prop-types";
 import Header from "./Header";
 import Footer from "./Footer";
-import Panel from "./SamplePanel"
+import Panel from "./SamplePanel";
+import KronaPanel from "./Krona";
 import '../styles/rampart.css';
 import OverallSummary from "./overallSummary";
 import ChooseBasecalledDirectory from "./ChooseBasecalledDirectory";
@@ -64,6 +65,19 @@ const RenderPanels = ({dataPerSample, combinedData, viewOptions, config, openCon
       />
     );
   })
+
+  const kronaFileAvailable = true;
+  if (kronaFileAvailable){
+    elements.push(
+      <KronaPanel
+          viewOptions={viewOptions}
+          canExpand={kronaFileAvailable}
+          socket={socket}
+          config={config}
+        />
+    );
+  }
+
   return elements;
 }
 
