@@ -1,5 +1,6 @@
 workdir: $pwd
 sample: None
+barcodes: ""
 kraken_db: "/Users/rmcolq/VirusEvolution Dropbox/Rachel Colquhoun/Projects/Minikraken2/db/minikraken2_v2_8GB_201904_UPDATE"
 min_length: 10
 max_length: 10000

@@ -22,7 +22,40 @@ const classifyingQueue = new Deque();
 classifyingQueue.observeRangeChange(() => {classifier();});
 const addToClassifyingQueue = (thing) => classifyingQueue.push(thing);
 
-const call_snakemake_classifier = (fastq) => new Promise((resolve, reject) => {
+const call_python_bin_finder = (fastq) => new Promise((resolve, reject) => {
+    const basename = path.basename(fastq, ".fastq");
+    const workDir = path.dirname(global.config.demuxedPath);
+    const snakefile = path.join(__dirname, "..", "snakefiles/kraken/Snakefile");
+    console.log(snakefile);
+    console.log(workDir);
+    console.log(basename);
+    const pyprog = spawn('python3', [
+        "./binlorry/binlorry/get_key_values.py",
+        fastq,
+        "barcode"
+    ]);
+    let stdout = "";
+    let stderr = "";
+    pyprog.stdout.on('data', (data) => {stdout+=data});
+    pyprog.stderr.on('data', (data) => {stderr+=data});
+
+    // stochastically mock failure
+    if (global.MOCK_FAILURES && Math.random() < 0.05) {
+        reject("Mock classifying failure")
+    }
+
+    pyprog.on('close', (code) => {
+        console.log(`Found bins. Exit code ${code}`);
+        if (code === 0) {
+            if (stderr) console.log(stderr);
+            resolve(stdout);
+        } else {
+            reject(stderr)
+        }
+    });
+});
+
+const call_snakemake_classifier = (fastq, barcodes) => new Promise((resolve, reject) => {
     const basename = path.basename(fastq, ".fastq");
     const workDir = path.dirname(global.config.demuxedPath);
     const snakefile = path.join(__dirname, "..", "snakefiles/kraken/Snakefile");
@@ -33,7 +66,8 @@ const call_snakemake_classifier = (fastq) => new Promise((resolve, reject) => {
         "--snakefile", snakefile,
         "--config",
         "workdir=" + workDir,
-        "sample="+ basename
+        "sample=" + basename,
+        "barcodes=" + barcodes
     ]);
     let stdout = "";
     let stderr = "";
@@ -70,7 +104,8 @@ const classifier = async () => {
         const [datastoreAddress, fileToClassify] = classifyingQueue.shift();
         try {
             verbose(`[classifier] queue length: ${classifyingQueue.length+1}. classifying ${prettyPath(fileToClassify)}`);
-            results = await call_snakemake_classifier(fileToClassify);
+            barcodes = await call_python_bin_finder(fileToClassify);
+            results = await call_snakemake_classifier(fileToClassify, barcodes);
             //global.datastore.addClassifiedFastq(datastoreAddress, results);
             verbose(`[classifier] Classified ${prettyPath(fileToClassify)}. Read time: ${getReadTime(fileToClassify)}.`);
         } catch (err) {

@@ -1,7 +1,12 @@
 configfile: "snakefiles/kraken/config.yaml"
 workdir: config['workdir']
 
-SAMPLES, = [config['sample']]
+SAMPLES = [config['sample']]
+BARCODES = config['barcodes'].strip().split(",")
+
+rule all:
+    input:
+        expand("classified/barcode_{barcode}/{sample}.kraken", sample=SAMPLES, barcode=BARCODES)
 
 rule get_kraken_db:
     input:
@@ -30,18 +35,17 @@ rule binlorry:
     params:
         min_length=config["min_length"],
         max_length=config["max_length"],
+        sample="{sample}"
     output:
-        binned="binned/{sample}_{barcode}.fastq"
+        expand("binned/{{sample}}_{barcode}.fastq", barcode=BARCODES, sample="{sample}")
     shell:
         """
         binlorry -i {input.demuxed} \
         -n {params.min_length} \
         -x {params.max_length} \
-        --o binned/{sample} \
+        --o binned/{params.sample} \
         --bin-by barcode
         """
-
-BARCODES, = glob_wildcards("binned/{barcode}_*.fastq")
 
 rule kraken_classify:
     input:
@@ -50,16 +54,15 @@ rule kraken_classify:
         taxonomy="classified/taxonomy.tab"
     output:
         kraken="classified/barcode_{barcode}/{sample}.kraken",
+    params:
+        barcode="{barcode}"
     shell:
         """
+        mkdir -p "classified/barcode_{params.barcode}"
         kraken2 --db {input.db} \
             --memory-mapping \
             {input.binned} \
             > {output.kraken};
-        cat {output.kraken} >> classified/barcode_{barcode}/all.kraken;
-        ktImportTaxonomy -q 2 -t 3 classified/all.kraken -o classified/barcode_{barcode}/all_krona.html &> classified/barcode_{barcode}/krona.log
+        cat {output.kraken} >> classified/barcode_{params.barcode}/barcode_{params.barcode}.kraken;
+        ktImportTaxonomy -q 2 -t 3 classified/*/barcode_*.kraken -o classified/all_krona.html &> classified/krona.log
         """
-
-rule all:
-    input:
-        expand("classified/barcode_{barcode}/{sample}.kraken", sample=SAMPLES, barcode=BARCODES)
