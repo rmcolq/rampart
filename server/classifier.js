@@ -26,9 +26,6 @@ const call_python_bin_finder = (fastq) => new Promise((resolve, reject) => {
     const basename = path.basename(fastq, ".fastq");
     const workDir = path.dirname(global.config.demuxedPath);
     const snakefile = path.join(__dirname, "..", "snakefiles/kraken/Snakefile");
-    console.log(snakefile);
-    console.log(workDir);
-    console.log(basename);
     const pyprog = spawn('python3', [
         "./binlorry/binlorry/get_key_values.py",
         fastq,
@@ -45,7 +42,6 @@ const call_python_bin_finder = (fastq) => new Promise((resolve, reject) => {
     }
 
     pyprog.on('close', (code) => {
-        console.log(`Found bins. Exit code ${code}`);
         if (code === 0) {
             if (stderr) console.log(stderr);
             resolve(stdout);
@@ -59,9 +55,6 @@ const call_snakemake_classifier = (fastq, barcodes) => new Promise((resolve, rej
     const basename = path.basename(fastq, ".fastq");
     const workDir = path.dirname(global.config.demuxedPath);
     const snakefile = path.join(__dirname, "..", "snakefiles/kraken/Snakefile");
-    console.log(snakefile);
-    console.log(workDir);
-    console.log(basename);
     const pyprog = spawn('snakemake', [
         "--snakefile", snakefile,
         "--config",
@@ -80,7 +73,6 @@ const call_snakemake_classifier = (fastq, barcodes) => new Promise((resolve, rej
     }
 
     pyprog.on('close', (code) => {
-        console.log(`Snakemake script finished. Exit code ${code}`);
         if (code === 0) {
             if (stderr) console.log(stderr);
             resolve(code);

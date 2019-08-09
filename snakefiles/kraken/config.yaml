@@ -1,6 +1,6 @@
-workdir: $pwd
+workdir: None
 sample: None
 barcodes: ""
-kraken_db: "/Users/rmcolq/VirusEvolution Dropbox/Rachel Colquhoun/Projects/Minikraken2/db/minikraken2_v2_8GB_201904_UPDATE"
+kraken_db: "/Users/rmcolq/VirusEvolution Dropbox/Rachel Colquhoun/Projects/Seawater_WIMP/db/bold"
 min_length: 10
 max_length: 10000
