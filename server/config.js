@@ -185,15 +185,17 @@ const updateConfigWithNewBarcodes = () => {
 
 const updateWhichReferencesAreDisplayed = (refsToDisplay) => {
   let changed = false;
+  let previousName = "None";
   global.config.referencePanel.forEach((info) => {
     if (info.display && !refsToDisplay.includes(info.name)) {
       changed = true;
       info.display = false;
     }
-    if (!info.display && refsToDisplay.includes(info.name)) {
+    if (!info.display && refsToDisplay.includes(info.name) && info.name !== previousName) {
       changed = true;
       info.display = true;
     }
+    previousName = info.name;
   });
   if (changed) {
     global.CONFIG_UPDATED();
