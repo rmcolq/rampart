@@ -154,6 +154,7 @@ const getInitialConfig = (args) => {
                 config.run.barcodeNames[barcode] = {name: sample.name, order: index};
             })
         });
+    }
 
     // override with any barcode names on the arguments
     if (args.barcodeNames) {
