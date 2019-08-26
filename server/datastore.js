@@ -136,7 +136,7 @@ Datastore.prototype.getBarcodesSeen = function() {
  * @param {int} threshold at least 1 sample must have over this perc of reads mapping to include
  * @param {int} maxNum max num of references to return
  */
-const whichReferencesToDisplay = (processedData, threshold=0.5, maxNum=20) => {
+const whichReferencesToDisplay = (processedData, threshold=0, maxNum=20) => {
   const refMatchesAcrossSamples = {};
   const refsAboveThres = {}; /* references above ${threshold} perc in any sample. values = num samples matching this criteria */
   for (const [sampleName, sampleData] of Object.entries(processedData)) {
