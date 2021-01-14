@@ -82,4 +82,6 @@ rule all:
 include: "rules/unzip.smk"
 include: "rules/demultiplex.smk"
 include: "rules/map.smk"
+include: "rules/query_voc.smk"
+include: "rules/combine_csv.smk"
 

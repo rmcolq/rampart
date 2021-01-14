@@ -76,6 +76,11 @@ function getInitialConfig(args) {
         description: "Reads that didn't map to any reference",
         display: true
     }];
+    config.genome.mutationPanel = [{
+        name: UNMAPPED_LABEL,
+        description: "Reads that didn't have any mutations",
+        display: true
+    }];
     config.primers = readConfigFile(pathCascade, PRIMERS_CONFIG_FILENAME);
     config.pipelines = readConfigFile(pathCascade, PIPELINES_CONFIG_FILENAME);
     config.run = {
@@ -183,6 +188,10 @@ function modifyConfigViaCommandLineArguments(config, args) {
     if (args.referencesLabel) {
         config.display.referencesLabel = args.referencesLabel;
     }
+
+    if (args.mutationsLabel) {
+        config.display.mutationsLabel = args.mutationsLabel;
+    }
 }
 
 function sortOutPaths(config) {
@@ -214,7 +223,9 @@ function setUpDisplaySettings(config) {
         filters: {},
         // filters: {"maxReadLength": 600}, // TMP TODO
         relativeReferenceMapping: false,
-        logYAxis: false
+        logYAxis: false,
+        mutationCountThreshold: 5,
+        maxMutationPanelSize: 100
     };
 
     // Add any display options from the protocol config file

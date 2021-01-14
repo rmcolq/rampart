@@ -12,6 +12,8 @@
  *
  */
 
+const { warn } = require("./utils");
+
 /**
  * data associated with an individual sample (one or more barcodes).
  * Initialise via `new SampleData()`.
@@ -27,6 +29,8 @@ const SampleData = function() {
     this.readLengthMappedCounts = {};
     this.readLengthCounts = {};
     this.refMatchCoverages = {};
+    this.mutationMatchCounts = {};
+    this.mutationMatchCoverages = {};
     // this.refMatchSimilarities = {};
 };
 
@@ -159,6 +163,51 @@ SampleData.prototype.updateRefMatchCounts = function(reads) {
 };
 
 /**
+ * update per-mutation-match coverage stats
+ * modifies `this.mutationMatchCoverages` in place
+ */
+SampleData.prototype.updateMutationMatchCoverages = function(reads) {
+    reads.forEach((read) => {
+        if (read.mapped) {
+            /* initialise unseen mutation */
+            const mut = read.mutations;
+            mut.forEach((item) => {
+                if (!this.mutationMatchCoverages[item]) {
+                    this.mutationMatchCoverages[item] = Array.from(new Array(global.config.display.numCoverageBins), () => 0);
+                }
+                addCoverage(read, this.mutationMatchCoverages[item], global.config.display.numCoverageBins);
+            })
+        }
+    })
+};
+
+/**
+ * Updates `this.mutationMatchCounts`.
+ * Returns set of mutations observed in these reads.
+ */
+SampleData.prototype.updateMutationMatchCounts = function(reads) {
+    warn(`update MutationMatchCounts`);
+    const mutationsSeen = new Set();
+    reads.forEach((read) => {
+        if (read.mapped){
+            const mut =  read.mutations;
+            mut.forEach((item) => {
+                if (item !== '') {
+                    mutationsSeen.add(item)
+                    //warn(`add mut '${item}' to mutations seen`)
+                    if (!this.mutationMatchCounts[item]) {
+                        this.mutationMatchCounts[item] = 0;
+                    }
+                    this.mutationMatchCounts[item]++;
+                    //warn(`match counts now '${this.mutationMatchCounts[item]}'`)
+                }
+            })
+        }
+    })
+    return mutationsSeen;
+};
+
+/**
  * Update this.mappedCount and this.processedCount
  */
 SampleData.prototype.updateReadCounts = function(reads) {
@@ -265,11 +314,12 @@ const updateSampleDataWithNewReads = (sampleData, reads) => {
 
     sampleData.updateTemporalData(reads);
 
+    const mutationsSeen = sampleData.updateMutationMatchCounts(reads);
+
     /* Following removed as the client no longer uses it - Mar 30 2020 */
     // sampleData.updateRefMatchSimilarities(reads);
 
-    return {referencesSeen};
+    return {referencesSeen, mutationsSeen};
 }
-
 
 module.exports = { SampleData, updateSampleDataWithNewReads };

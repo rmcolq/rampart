@@ -40,7 +40,7 @@ rule parse_mapping:
         min_identity= minimum_identity, 
         reference_options = f'--reference_options "{reference_fields}"'
     output:
-        report = config["output_path"] + "/{filename_stem}.csv"
+        report = temp(config["output_path"] + "/temp/{filename_stem}_map.csv")
     shell:
         """
         python {params.path_to_script}/parse_paf.py \

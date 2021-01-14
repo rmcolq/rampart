@@ -147,6 +147,7 @@ function parseAnnotationRequires(pipeline, config, pathCascade, args) {
 
             // set this in config.run so the UI can find it.
             config.run.referencesPanel = filepath;
+            config.run.mutationsPanel = filepath;
 
             // finally, transfer them to the `configOptions`
             pipeline.configOptions[requirement.config_key] = requirement.path;

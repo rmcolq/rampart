@@ -21,8 +21,9 @@
  */
 
 const { verbose } = require("../utils");
-const { newReferenceColour, newSampleColour } = require("../colours");
+const { newReferenceColour, newSampleColour, newMutationColour } = require("../colours");
 const { UNMAPPED_LABEL } = require("../magics");
+const { warn } = require("../utils");
 
 /**
  * This file contains functions which modify parts of an already set config
@@ -140,6 +141,7 @@ const updateReferencesSeen = (referencesSeen) => {
 const updateWhichReferencesAreDisplayed = (refsToDisplay) => {
   let changed = false;
   for (const refInfo of Object.values(global.config.genome.referencePanel)) {
+      warn(`refInfo.display is '${refInfo.display}' and refInfo.name is '${refInfo.name}' and refsToDisplay.includes(refInfo.name) is '${refsToDisplay.includes(refInfo.name)}'`)
       if (refInfo.display && !refsToDisplay.includes(refInfo.name)) {
           changed = true;
           refInfo.display = false;
@@ -155,9 +157,58 @@ const updateWhichReferencesAreDisplayed = (refsToDisplay) => {
   }
 };
 
+/**
+ * RAMPART doesn't know what mutations are out there, we can only add them as we see them
+ * This updates the config store of the mutations, and triggers a client update if there are changes
+ * @param {set} mutationsSeen
+ * @returns {bool} has the config changed?
+ */
+const updateMutationsSeen = (mutationsSeen) => {
+    const changes = [];
+    const mutationsInConfig = new Set([...global.config.genome.mutationPanel.map((x) => x.name)]);
+    mutationsSeen.forEach((mut) => {
+        if (mut !== UNMAPPED_LABEL && !mutationsInConfig.has(mut)) {
+            global.config.genome.mutationPanel.push({
+                name: mut,
+                description: "to do",
+                colour: newMutationColour(mut),
+                display: false
+            });
+            changes.push(mut);
+        }
+    });
+
+    if (changes.length) {
+        verbose("config", `new mutations seen: ${changes.join(", ")}`);
+        return true;
+    }
+    return false;
+};
+
+const updateWhichMutationsAreDisplayed = (mutsToDisplay) => {
+    let changed = false;
+    for (const mutInfo of Object.values(global.config.genome.mutationPanel)) {
+        warn(`mutInfo.display is '${mutInfo.display}' and mutInfo.name is '${mutInfo.name}' and mutsToDisplay.includes(mutInfo.name) is '${mutsToDisplay.includes(mutInfo.name)}'`)
+        if (mutInfo.display && !mutsToDisplay.includes(mutInfo.name)) {
+            changed = true;
+            mutInfo.display = false;
+        }
+        if (!mutInfo.display && mutsToDisplay.includes(mutInfo.name)) {
+            changed = true;
+            mutInfo.display = true;
+        }
+    }
+    if (changed) {
+        verbose("config", `updated which mutations in the panel should be displayed`);
+        global.CONFIG_UPDATED();
+    }
+};
+
 module.exports = {
   modifySamplesAndBarcodes,
   modifyConfig,
   updateReferencesSeen,
-  updateWhichReferencesAreDisplayed
+  updateWhichReferencesAreDisplayed,
+  updateMutationsSeen,
+  updateWhichMutationsAreDisplayed
 }

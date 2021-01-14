@@ -48,8 +48,8 @@ async function parseAnnotations(fileToParse) {
 
 /**
  * Parse the annotated CSV. Example header & first line:
- * read_name,read_len,start_time,barcode,best_reference,ref_len,start_coords,end_coords,num_matches,aln_block_len
- * 1e9b37d6-de17-4093-b871-6dc8fc37df63,502,2018-10-08T14:06:34Z,none,Yambuku|DRC|1976,18957,5283,5731,254,462 
+ * read_name,read_len,start_time,barcode,best_reference,ref_len,start_coords,end_coords,num_matches,mapping_len,variants
+ * 1e9b37d6-de17-4093-b871-6dc8fc37df63,502,2018-10-08T14:06:34Z,none,Yambuku|DRC|1976,18957,5283,5731,254,462,none
  */
 const annotationParser = async () => {
 
@@ -109,6 +109,18 @@ const createReadsFromAnnotation = (fastqStem, annotations) => {
             }
         }
 
+        /* the mutations present is a list of mutations. */
+        let mutationsCall = d.variants.split('|');
+        for (let mutation of mutationsCall) {
+            if (global.config.display.mutationLabel) {
+                if (d[global.config.display.mutationLabel]) {
+                    mutation = d[global.config.display.mutationLabel];
+                } else {
+                    warn(`Mutation label, '${global.config.display.mutationLabel}', not found in annotation CSV file`);
+                }
+            }
+        }
+
         const readLength = parseInt(d.read_len, 10);
         // "*" means unmapped, "?" means ambiguous but call both as unmapped for now.
         if (referenceCall === "*" || referenceCall === "?" || referenceCall === "") {
@@ -139,6 +151,7 @@ const createReadsFromAnnotation = (fastqStem, annotations) => {
             // only store ref matches for mapped reads
             dataPoint.topRefHit = referenceCall;
             dataPoint.topRefHitSimilarity = parseInt(d.num_matches, 10) / parseInt(d.mapping_len, 10);
+            dataPoint.mutations = mutationsCall;
         }
         dataPoint.readLength = readLength;
         dataPoint.time = (new Date(d.start_time)).getTime();

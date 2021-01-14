@@ -112,5 +112,6 @@ function _interpolatorToArray(interp, n, ignoreStart=0, ignoreEnd=0, luminanceTh
 
 module.exports = {
   newSampleColour: newSampleColourGenerator(),
-  newReferenceColour: newReferenceColourGenerator()
+  newReferenceColour: newReferenceColourGenerator(),
+  newMutationColour: newReferenceColourGenerator()
 };

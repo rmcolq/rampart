@@ -27,3 +27,6 @@ threads: 2
 
 min_read_length: 0
 max_read_length: 1000000
+
+##### File of mutations to query #####
+variants_file: variants.csv

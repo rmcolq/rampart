@@ -17,3 +17,5 @@
 export const getLogYAxis = (config) => config.display.logYAxis;
 
 export const getRelativeReferenceMapping = (config) => config.display.relativeReferenceMapping;
+
+export const getRelativeMutationMapping = (config) => config.display.relativeMutationMapping;

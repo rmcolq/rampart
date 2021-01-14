@@ -16,9 +16,10 @@ const { createReadsFromAnnotation } = require("./annotationParser");
 const { SampleData, updateSampleDataWithNewReads } = require("./sampleData");
 const { timerStart, timerEnd } = require('./timers');
 const { updateWhichReferencesAreDisplayed, updateReferencesSeen } = require("./config/modify");
+const { updateWhichMutationsAreDisplayed, updateMutationsSeen } = require("./config/modify");
 const { getBarcodesInConfig } = require("./config/helpers");
 const { UNMAPPED_LABEL } = require("./magics");
-const { verbose, fatal } = require("./utils");
+const { verbose, fatal, warn } = require("./utils");
 const { newSampleColour } = require("./colours");
 
 /**
@@ -110,18 +111,23 @@ Datastore.prototype.addAnnotatedSetOfReads = function(fileNameStem, annotations)
     i.e. it represents a summary of `this.reads` given the current barcode-sample mapping.
     We do this "per barcode" */
     const referencesSeen = new Set();
+    const mutationsSeen = new Set();
     [...barcodes].forEach((barcode) => {
-
         const barcodeReads = reads.filter((d) => d.barcode === barcode);
         const sampleName = this.getSampleName(barcode);
+        warn(`processing sampleName '${sampleName}' and barcode '${barcode}'`)
 
         /* update `dataPerSample`, which contains the "overall" summary of the run so far,
         i.e. it represents a summary of `this.reads` given the current barcode-sample mapping. */
-        const {referencesSeen: referencesSeenThisBarcode} = updateSampleDataWithNewReads(
+        warn(`processing data per reference per barcode`)
+        const {referencesSeen: referencesSeenThisBarcode, mutationsSeen: mutationsSeenThisBarcode} = updateSampleDataWithNewReads(
             this.dataPerSample[sampleName],
             barcodeReads
         );
         [...referencesSeenThisBarcode].forEach((ref) => referencesSeen.add(ref));
+        [...mutationsSeenThisBarcode].forEach((mut) => mutationsSeen.add(mut));
+        warn(`done update sample mutation data '${sampleName}'`);
+
 
         /* if filtering is in effect, then in addition to keeping `sampleData` up to date we want to
         update `filteredSampleData`. Note that if the filter specs change, then this gets a complete
@@ -142,6 +148,8 @@ Datastore.prototype.addAnnotatedSetOfReads = function(fileNameStem, annotations)
     /* trigger server-client data updates */
     const newReferencesSeen = updateReferencesSeen(referencesSeen);
     if (newReferencesSeen || newBarcodesObserved) global.CONFIG_UPDATED();
+    const newMutationsSeen = updateMutationsSeen(mutationsSeen);
+    if (newMutationsSeen || newBarcodesObserved) global.CONFIG_UPDATED();
     global.NOTIFY_CLIENT_DATA_UPDATED()
 };
 
@@ -255,6 +263,49 @@ const whichReferencesToDisplay = (dataPerSample, threshold=5, maxNum=10) => {
 };
 
 /**
+ * Choose which mutations should be displayed
+ * we only want to report mutations over some threshold so that
+ * the display is not cluttered with too many rows in the heatmap
+ * TODO: make this threshold / number taken definable by the client
+ * @param {object} dataPerSample see datastore.dataPerSample
+ * @param {int} threshold at least 1 sample must have over this perc of reads mapping to include
+ * @param {int} maxNum max num of mutations to return
+ */
+const whichMutationsToDisplay = (dataPerSample, threshold=0, maxNum=100) => {
+    const mutationMatchesAcrossSamples = {};
+    const mutsAboveThres = {}; /* mutations above ${threshold} perc in any sample. values = num samples matching this criteria */
+    for (const [sampleName, sampleData] of Object.entries(dataPerSample)) {
+        warn(`sampleName '${sampleName}' and sampleData '${sampleData}'`)
+        /* calculate the percentage mapping for this sample across all mutations to compare with threshold */
+        mutationMatchesAcrossSamples[sampleName] = {};
+        const mutationMatchPercs = {};
+        const total = Object.values(sampleData.mutationMatchCounts).reduce((pv, cv) => cv+pv, 0);
+        for (const mut of Object.keys(sampleData.mutationMatchCounts)) {
+            warn(`mut '${mut}' has count '${sampleData.mutationMatchCounts[mut]}'`)
+            mutationMatchPercs[mut] = sampleData.mutationMatchCounts[mut] / total * 100;
+            mutationMatchesAcrossSamples[sampleName][mut] = sampleData.mutationMatchCounts[mut];
+        }
+        mutationMatchesAcrossSamples[sampleName].total = total;
+
+        for (const [mutName, perc] of Object.entries(mutationMatchPercs)) {
+            warn(`mut '${mutName}' has perc '${perc}' and threshold is '${threshold}'`)
+            if (perc > threshold) {
+                if (mutsAboveThres[mutName] === undefined) mutsAboveThres[mutName]=0;
+                mutsAboveThres[mutName]++;
+                warn(`mutsabovethresholdcount '${mutsAboveThres[mutName]}' and mut name '${mutName}'`);
+            }
+        }
+    }
+    const mutsToDisplay = Object.keys(mutsAboveThres)
+        .sort((a, b) => mutsAboveThres[a]<mutsAboveThres[b] ? 1 : -1)
+        .filter( a => a !== UNMAPPED_LABEL)
+        .slice(0, maxNum);
+
+    updateWhichMutationsAreDisplayed(mutsToDisplay);
+    return mutationMatchesAcrossSamples;
+};
+
+/**
  * Creates a summary of all data to deliver to the client.
  * @returns {{
  *   dataPerSample                            {Object}  data per sample name,
@@ -287,18 +338,22 @@ Datastore.prototype.getDataForClient = function() {
     /* Part I - summarise each sample (i.e. each sample name, i.e. this.dataPerSample */
     const summarisedData = {};
     const refMatchesAcrossSamples = whichReferencesToDisplay(dataToVisualise, global.config.display.referenceMapCountThreshold, global.config.display.maxReferencePanelSize);
+    const mutationMatchesAcrossSamples = whichMutationsToDisplay(dataToVisualise, global.config.display.mutationMapCountThreshold, global.config.display.maxMutationPanelSize);
+
     for (const [sampleName, sampleData] of Object.entries(dataToVisualise)) {
         summarisedData[sampleName] = {
             mappedCount: sampleData.mappedCount,
             processedCount: sampleData.processedCount,
             readsLastSeen: sampleData.readsLastSeenTime > 0 ? (this.currentTimestamp - sampleData.readsLastSeenTime) / 1000 : 0,
             refMatches: refMatchesAcrossSamples[sampleName],
+            mutationMatches: mutationMatchesAcrossSamples[sampleName],
             coverage: sampleData.coverage,
             maxCoverage: sampleData.coverage.reduce((pv, cv) => cv > pv ? cv : pv, 0),
             temporal: sampleData.summariseTemporalData(this.timestampAdjustment),
             readLengthsMapped: summariseReadLengths(sampleData.readLengthMappedCounts),
             readLengths: summariseReadLengths(sampleData.readLengthCounts),
-            refMatchCoveragesStream: createReferenceMatchStream(sampleData.refMatchCoverages)
+            refMatchCoveragesStream: createReferenceMatchStream(sampleData.refMatchCoverages),
+            mutationMatchCoveragesStream: createMutationMatchStream(sampleData.mutationMatchCoverages)
             /* Following removed as the client no longer uses it - Mar 30 2020 */
             // refMatchSimilarities: sampleData.refMatchSimilarities
         }
@@ -409,6 +464,33 @@ const createReferenceMatchStream = function(refMatchCoverages) {
     return stream;
 };
 
+const createMutationMatchStream = function(mutationMatchCoverages) {
+    if (!Object.keys(mutationMatchCoverages).length) {
+        return [];
+    }
+    const nBins = global.config.display.numCoverageBins;
+    const stream = global.config.genome.mutationPanel.map(() => Array.from(new Array(nBins), () => [0,0]));
+
+    for (let xIdx=0; xIdx<nBins; xIdx++) {
+        const totalReadsHere = Object.values(mutationMatchCoverages)
+            .map((coverageBins) => coverageBins[xIdx])
+            .reduce((a, b) => a+b);
+
+        let yPosition = 0;
+        global.config.genome.mutationPanel.forEach((mutInfo, mutIdx) => {
+            let percHere = 0;
+            /* require >10 reads to calc stream & this mut must have been seen for this sample */
+            if (totalReadsHere >= 10 && mutationMatchCoverages[mutInfo.name]) {
+                percHere = mutationMatchCoverages[mutInfo.name][xIdx] / totalReadsHere;
+            }
+            stream[mutIdx][xIdx] = [yPosition, yPosition+percHere];
+            yPosition += +percHere;
+        })
+    }
+
+    return stream;
+};
+
 /**
  * Given temporal data for each individual sample, we want to summarise this for the overall dataset.
  *
@@ -463,6 +545,7 @@ function filterReads(reads, filters) {
         if (filters.maxReadLength && read.readLength > filters.maxReadLength) return false;
         if (filters.minReadLength && read.readLength < filters.minReadLength) return false;
         if (filters.references && !filters.references.includes(read.topRefHit)) return false;
+        if (filters.mutations && !filters.mutations.includes(read.mutations)) return false;
         if (filters.maxRefSimilarity && read.topRefHitSimilarity && read.topRefHitSimilarity*100 > filters.maxRefSimilarity) return false;
         if (filters.minRefSimilarity && read.topRefHitSimilarity && read.topRefHitSimilarity*100 < filters.minRefSimilarity) return false;
         return true;
