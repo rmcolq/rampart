@@ -17,8 +17,8 @@ import styled from 'styled-components';
 import CoveragePlot from "../Charts/Coverage";
 import ReadsOverTime from "../Charts/ReadsOverTime";
 import ReadsPerSample from "../Charts/ReadsPerSample";
-import ReferenceHeatmap from "../Charts/ReferenceHeatmap";
-import MutationHeatmap from "../Charts/MutationHeatmap";
+import { ReferenceHeatmap } from "../Charts/ReferenceHeatmap";
+import { MutationHeatmap } from "../Charts/MutationHeatmap";
 import { ChartContainer, ExpandIconContainer } from "../SamplePanel/styles";
 import { IoIosExpand, IoIosContract } from "react-icons/io";
 
@@ -125,7 +125,7 @@ const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePan
         ),
         mutationHeatmap: (
             <MutationHeatmap
-                width={chartToDisplay === "mutationHeatmap" ? "85%" : "25%"}
+                width={chartToDisplay === "mutationHeatmap" ? "85%" : "85%"}
                 title={config.display.relativeMutationMapping ? "Relative Mutation Matches" : "Mutation Matches"}
                 data={dataPerSample}
                 config={config}
@@ -153,7 +153,7 @@ const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePan
         if (Object.keys(dataPerSample).length > 1) {
             els.push(charts.readsPerSample);
         }
-        //els.push(charts.referenceHeatmap);
+        els.push(charts.referenceHeatmap);
         els.push(charts.mutationHeatmap);
         return els;
     };

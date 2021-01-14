@@ -16,7 +16,7 @@ import React from 'react';
 import {mouse, select} from "d3-selection";
 import {calcScales} from "../../utils/commonFunctions";
 import {heatColourScale} from "../../utils/colours";
-import {getRelativeReferenceMapping} from "../../utils/config";
+import {getRelativeReferenceMapping, getRelativeMutationMapping} from "../../utils/config";
 import Container, {Title, HoverInfoBox} from "./styles";
 
 const EMPTY_CELL_COLOUR = "rgba(256, 256, 256, 0.15)"
@@ -57,7 +57,9 @@ const drawHeatMap = ({names, referencePanel, data, svg, scales, cellDims, chartG
       flat list, with each value itself a list:
         [sampleIdx, refPanelMatchIdx, fracIdentity]
     */
-
+    console.log(`drawheatmap`);
+    console.log(`with lengths ${names.length}`);
+    console.log(`and ${referencePanel.length}`);
     const d3data = Array.from(new Array(names.length*referencePanel.length));
 
     let dataIdx = 0;
@@ -298,4 +300,4 @@ class ReferenceHeatmap extends React.Component {
     }
 }
 
-export default ReferenceHeatmap;
+export { ReferenceHeatmap };

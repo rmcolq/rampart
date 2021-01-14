@@ -16,7 +16,7 @@ import React from 'react';
 import {mouse, select} from "d3-selection";
 import {calcScales} from "../../utils/commonFunctions";
 import {heatColourScale} from "../../utils/colours";
-import {getRelativeMutationMapping} from "../../utils/config";
+import {getRelativeReferenceMapping, getRelativeMutationMapping} from "../../utils/config";
 import Container, {Title, HoverInfoBox} from "./styles";
 
 const EMPTY_CELL_COLOUR = "rgba(256, 256, 256, 0.15)"
@@ -25,7 +25,7 @@ const EMPTY_CELL_COLOUR = "rgba(256, 256, 256, 0.15)"
 const calcChartGeom = (DOMRect) => ({
     width: DOMRect.width,
     height: DOMRect.height, // title line
-    spaceLeft: DOMRect.width>600 ? 250 : // space for the mutation names
+    spaceLeft: DOMRect.width>600 ? 250 : // space for the reference names
         DOMRect.width>400 ? 150 :
             100,
     spaceRight: 0,
@@ -35,12 +35,12 @@ const calcChartGeom = (DOMRect) => ({
     maxLegendWidth: 400
 });
 
-const calcCellDims = (chartGeom, numSamples, numMutations) => {
+const calcCellDims = (chartGeom, numSamples, numReferences) => {
     const cellPadding = 1;
     const availableWidth = chartGeom.width - chartGeom.spaceLeft - chartGeom.spaceRight;
     const availableHeight = chartGeom.height - chartGeom.spaceBottom - chartGeom.spaceTop;
     const cellWidth = availableWidth/numSamples - cellPadding;
-    const cellHeight = availableHeight/numMutations - cellPadding;
+    const cellHeight = availableHeight/numReferences - cellPadding;
     return {
         height: cellHeight,
         width: cellWidth,
@@ -49,56 +49,55 @@ const calcCellDims = (chartGeom, numSamples, numMutations) => {
 }
 
 
-const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, chartGeom, relativeMutationMapping, infoMut}) => {
-    /* convert the mutationMatchPerSample data from raw counts to percentages & change to a d3-friendly struct.
+const drawHeatMap = ({names, referencePanel, data, svg, scales, cellDims, chartGeom, relativeReferenceMapping, infoRef}) => {
+    /* convert the refMatchPerSample data from raw counts to percentages & change to a d3-friendly struct.
     Input format:
-      mutationMatchPerSample[sampleIdx][mutation_idx] = INT
+      refMatchPerSample[sampleIdx][reference_idx] = INT
     Output data format:
       flat list, with each value itself a list:
-        [sampleIdx, mutPanelMatchIdx, fracIdentity]
+        [sampleIdx, refPanelMatchIdx, fracIdentity]
     */
-    console.warn(`names length '${names.length}' and mutation panel length '${mutationPanel.length}'`)
-    const d3data = Array.from(new Array(names.length*mutationPanel.length));
+    console.log(`drawheatmap`);
+    console.log(`with lengths ${names.length}`);
+    console.log(`and ${referencePanel.length}`);
+    const d3data = Array.from(new Array(names.length*referencePanel.length));
 
     let dataIdx = 0;
 
     let maxCount = 0;
     let total = 0;
     for (let sampleIdx=0; sampleIdx<names.length; sampleIdx++) {
-        for (let mutIdx=0; mutIdx<mutationPanel.length; mutIdx++) {
-            console.warn(`get data for sample '${sampleIdx}' '${names[sampleIdx]}' and mutation '${mutIdx}' '${mutationPanel[mutIdx].name}'`)
-            const count = parseInt(data[names[sampleIdx]].mutationMatches[mutationPanel[mutIdx].name]) || 0;
-            console.warn(`count '${count}'`)
+        for (let refIdx=0; refIdx<referencePanel.length; refIdx++) {
+            const count = parseInt(data[names[sampleIdx]].refMatches[referencePanel[refIdx].name]) || 0;
             if (count > maxCount) {
                 maxCount = count;
             }
             total += count;
         }
     }
-    console.warn(`total '${total}' and maxCount '${maxCount}'`)
 
-    // relativeMutationMapping
+    // relativeReferenceMapping
     // if true then the heat is relative to the largest value, if false then it is the percentage
     // of reads by sample
 
     const showLegend = false;
 
     for (let sampleIdx=0; sampleIdx<names.length; sampleIdx++) {
-        for (let mutIdx=0; mutIdx<mutationPanel.length; mutIdx++) {
-            const count = parseInt(data[names[sampleIdx]].mutationMatches[mutationPanel[mutIdx].name]) || 0;
-            const sampleTotal = parseInt(data[names[sampleIdx]].mutationMatches['total']) || 1;
+        for (let refIdx=0; refIdx<referencePanel.length; refIdx++) {
+            const count = parseInt(data[names[sampleIdx]].refMatches[referencePanel[refIdx].name]) || 0;
+            const sampleTotal = parseInt(data[names[sampleIdx]].refMatches['total']) || 1;
             const percentOfSample = (100.0 * count) / sampleTotal;
             const percentOfTotal = (100.0 * count) / total;
-            const heat = (100.0 * count) / (relativeMutationMapping ? maxCount : sampleTotal);
+            const heat = (100.0 * count) / (relativeReferenceMapping ? maxCount : sampleTotal);
             d3data[dataIdx] = {
                 sampleIdx,
-                mutIdx,
+                refIdx,
                 count,
                 percentOfSample,
                 percentOfTotal,
                 heat
             };
-            console.warn(names[sampleIdx] + " vs. " + mutationPanel[mutIdx].name + ": " + data[names[sampleIdx]].mutationMatches[mutationPanel[mutIdx].name] + " / " + data[names[sampleIdx]].mutationMatches['total'])
+            // console.log(names[sampleIdx] + " vs. " + referencePanel[refIdx].name + ": " + data[names[sampleIdx]].refMatches[referencePanel[refIdx].name] + " / " + data[names[sampleIdx]].refMatches['total'])
             dataIdx++;
         }
     }
@@ -108,7 +107,7 @@ const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, char
 
     svg.selectAll("*").remove();
 
-    const mutationName = (d) => {
+    const referenceName = (d) => {
         const charPx = 8; /* guesstimate of character pixel width */
         const allowedChars = Math.floor(chartGeom.spaceLeft / charPx);
         if (d.name.length > allowedChars) {
@@ -117,29 +116,29 @@ const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, char
         return d.name;
     };
 
-    /* render the mutation names (on the far left) */
-    svg.selectAll(".mutLabel")
-        .data(mutationPanel) /* get the labels */
+    /* render the reference names (on the far left) */
+    svg.selectAll(".refLabel")
+        .data(referencePanel) /* get the labels */
         .enter()
         .append("text")
-        .attr("class", "mutLabel axis")
-        .text(mutationName)
-        .attr('y', (mutName, mutIdx) => scales.y(mutIdx+1) + 0.5*cellDims.height)
+        .attr("class", "refLabel axis")
+        .text(referenceName)
+        .attr('y', (refName, refIdx) => scales.y(refIdx+1) + 0.5*cellDims.height)
         .attr('x', chartGeom.spaceLeft - 8 /* - cellDims.height */)
         .attr("text-anchor", "end")
         .attr("font-size", "12px")
         .attr("alignment-baseline", "middle"); /* i.e. y value specifies top of text */
 
-    // svg.selectAll(".mutColour")
-    //     .data(mutations) /* get the labels */
+    // svg.selectAll(".refColour")
+    //     .data(references) /* get the labels */
     //     .enter()
     //     .append("rect")
-    //     .attr("class", "mutColour")
+    //     .attr("class", "refColour")
     //     .attr('width', cellDims.height)
     //     .attr('height', cellDims.height)
     //     .attr("x", chartGeom.spaceLeft - 4 - cellDims.height)
-    //     .attr('y', (mutName, mutIdx) => scales.y(mutIdx+1))
-    //     .attr("fill", (mutName, mutIdx) => mutationDiscreteColours[mutIdx]);
+    //     .attr('y', (refName, refIdx) => scales.y(refIdx+1))
+    //     .attr("fill", (refName, refIdx) => referenceDiscreteColours[refIdx]);
 
     if (!showLegend) {
         const sampleName = (d) => {
@@ -171,11 +170,11 @@ const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, char
         const [mouseX, mouseY] = mouse(this); // [x, y] x starts from left, y starts from top
         const left  = mouseX > 0.5 * scales.x.range()[1] ? "" : `${mouseX + 16}px`;
         const right = mouseX > 0.5 * scales.x.range()[1] ? `${scales.x.range()[1] - mouseX}px` : "";
-        // const mapString = mutationPanel[d.mutIdx].name !== "unmapped" ?
-        //     `map to ${mutationPanel[d.mutIdx].name}` : `were not mapped to any mutation`;
-        const mapString = mutationPanel[d.mutIdx].name !== "unmapped" ?
-            `Mutation: ${mutationPanel[d.mutIdx].name}` : `Unmapped`;
-        select(infoMut)
+        // const mapString = referencePanel[d.refIdx].name !== "unmapped" ?
+        //     `map to ${referencePanel[d.refIdx].name}` : `were not mapped to any reference`;
+        const mapString = referencePanel[d.refIdx].name !== "unmapped" ?
+            `Reference: ${referencePanel[d.refIdx].name}` : `Unmapped`;
+        select(infoRef)
             .style("left", left)
             .style("right", right)
             .style("top", `${mouseY}px`)
@@ -193,7 +192,7 @@ const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, char
             `);
     }
     function handleMouseOut() {
-        select(infoMut).style("visibility", "hidden");
+        select(infoRef).style("visibility", "hidden");
     }
 
     /* render the coloured cells of the heatmap */
@@ -205,12 +204,12 @@ const drawMutHeatMap = ({names, mutationPanel, data, svg, scales, cellDims, char
         .attr('width', cellDims.width)
         .attr('height', cellDims.height)
         .attr("x", d => scales.x(d.sampleIdx) + cellDims.padding)
-        .attr("y", d => scales.y(d.mutIdx+1) + cellDims.padding)
+        .attr("y", d => scales.y(d.refIdx+1) + cellDims.padding)
         .attr("fill", d => d.count === 0 ? EMPTY_CELL_COLOUR : heatColourScale(d.heat))
         .on("mouseout", handleMouseOut)
         .on("mousemove", handleMouseMove);
 
-    if (showLegend && relativeMutationMapping) {
+    if (showLegend && relativeReferenceMapping) {
         /* render the legend (bottom) -- includes coloured cells & text */
         const legendDataValues = [0, 1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
         let legendWidth = chartGeom.width - chartGeom.spaceRight - 2 * chartGeom.legendPadding;
@@ -255,7 +254,6 @@ class MutationHeatmap extends React.Component {
     }
     redraw() {
         /* currently redo everything, but we could make this much much smarter */
-        console.warn(`(re)draw mutation heatmap`)
         const sampleNames = Object.keys(this.props.data).filter((name) => name!=="all");
         const mutationPanel = this.props.mutationPanel.filter((info) => info.display);
         const chartGeom = this.state.chartGeom;
@@ -265,21 +263,25 @@ class MutationHeatmap extends React.Component {
             sampleNames.length,     // number of columns
             mutationPanel.length   // number of rows
         );
-        drawMutHeatMap({
-            names: sampleNames,
-            mutationPanel,
-            data: this.props.data,
-            svg: this.state.svg,
-            scales,
-            cellDims,
-            chartGeom,
-            relativeMutationMapping: getRelativeMutationMapping(this.props.config),
-            infoMut: this.infoMut
-        });
+        if (mutationPanel.length && sampleNames.length) {
+            console.warn(`mutation panel length is ${mutationPanel.length}`);
+            console.warn(`samples length is ${sampleNames.length}`);
+            drawHeatMap({
+                names: sampleNames,
+                referencePanel: mutationPanel,
+                data: this.props.data,
+                svg: this.state.svg,
+                scales,
+                cellDims,
+                chartGeom,
+                relativeReferenceMapping: getRelativeMutationMapping(this.props.config),
+                infoRef: this.infoRef
+            });
+        }
     }
     componentDidMount() {
-        const svg = select(this.DOMmut);
-        const chartGeom = calcChartGeom(this.boundingDOMmut.getBoundingClientRect());
+        const svg = select(this.DOMref);
+        const chartGeom = calcChartGeom(this.boundingDOMref.getBoundingClientRect());
         const hoverWidth = parseInt(chartGeom.width * 2/3, 10);
         this.setState({chartGeom, svg, hoverWidth})
     }
@@ -288,11 +290,11 @@ class MutationHeatmap extends React.Component {
     }
     render() {
         return (
-            <Container width={this.props.width} mut={(r) => {this.boundingDOMmut = r}}>
+            <Container width={this.props.width} ref={(r) => {this.boundingDOMref = r}}>
                 <Title>{this.props.title}</Title>
-                <HoverInfoBox width={this.state.hoverWidth} mut={(r) => {this.infoMut = r}}/>
+                <HoverInfoBox width={this.state.hoverWidth} ref={(r) => {this.infoRef = r}}/>
                 <svg
-                    mut={(r) => {this.DOMmut = r}}
+                    ref={(r) => {this.DOMref = r}}
                     height={this.state.chartGeom.height || 0}
                     width={this.state.chartGeom.width || 0}
                 />
@@ -302,4 +304,4 @@ class MutationHeatmap extends React.Component {
     }
 }
 
-export default MutationHeatmap;
+export { MutationHeatmap };

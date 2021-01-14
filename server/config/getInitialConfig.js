@@ -76,11 +76,7 @@ function getInitialConfig(args) {
         description: "Reads that didn't map to any reference",
         display: true
     }];
-    config.genome.mutationPanel = [{
-        name: UNMAPPED_LABEL,
-        description: "Reads that didn't have any mutations",
-        display: true
-    }];
+    config.genome.mutationPanel = [];
     config.primers = readConfigFile(pathCascade, PRIMERS_CONFIG_FILENAME);
     config.pipelines = readConfigFile(pathCascade, PIPELINES_CONFIG_FILENAME);
     config.run = {
@@ -224,7 +220,7 @@ function setUpDisplaySettings(config) {
         // filters: {"maxReadLength": 600}, // TMP TODO
         relativeReferenceMapping: false,
         logYAxis: false,
-        mutationCountThreshold: 5,
+        mutationMapCountThreshold: 5,
         maxMutationPanelSize: 100
     };
 

@@ -353,7 +353,7 @@ Datastore.prototype.getDataForClient = function() {
             readLengthsMapped: summariseReadLengths(sampleData.readLengthMappedCounts),
             readLengths: summariseReadLengths(sampleData.readLengthCounts),
             refMatchCoveragesStream: createReferenceMatchStream(sampleData.refMatchCoverages),
-            mutationMatchCoveragesStream: createMutationMatchStream(sampleData.mutationMatchCoverages)
+            //mutationMatchCoveragesStream: createMutationMatchStream(sampleData.mutationMatchCoverages)
             /* Following removed as the client no longer uses it - Mar 30 2020 */
             // refMatchSimilarities: sampleData.refMatchSimilarities
         }
@@ -464,7 +464,9 @@ const createReferenceMatchStream = function(refMatchCoverages) {
     return stream;
 };
 
-const createMutationMatchStream = function(mutationMatchCoverages) {
+/*const createMutationMatchStream = function(mutationMatchCoverages) {
+    warn(`creating mutation match stream`)
+    warn(`${Object.keys(mutationMatchCoverages).length}`)
     if (!Object.keys(mutationMatchCoverages).length) {
         return [];
     }
@@ -478,9 +480,9 @@ const createMutationMatchStream = function(mutationMatchCoverages) {
 
         let yPosition = 0;
         global.config.genome.mutationPanel.forEach((mutInfo, mutIdx) => {
-            let percHere = 0;
+            let percHere = 0;*/
             /* require >10 reads to calc stream & this mut must have been seen for this sample */
-            if (totalReadsHere >= 10 && mutationMatchCoverages[mutInfo.name]) {
+            /*if (totalReadsHere >= 10 && mutationMatchCoverages[mutInfo.name]) {
                 percHere = mutationMatchCoverages[mutInfo.name][xIdx] / totalReadsHere;
             }
             stream[mutIdx][xIdx] = [yPosition, yPosition+percHere];
@@ -489,7 +491,7 @@ const createMutationMatchStream = function(mutationMatchCoverages) {
     }
 
     return stream;
-};
+};*/
 
 /**
  * Given temporal data for each individual sample, we want to summarise this for the overall dataset.
