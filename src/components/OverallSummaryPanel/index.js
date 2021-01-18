@@ -39,24 +39,30 @@ const ContractChart = ({handleClick}) => {
 
 const Container = styled.div`
     width: calc(100% - 30px);
-    height: ${(props) => props.summaryPanelExpanded ? "750px" : "350px"};  /* adjusting will also adjust the graphs */
-    min-height: ${(props) => props.summaryPanelExpanded ? "750px" : "350px"};   /* as they calculate via document selector query */
+    height: ${(props) => props.summaryPanelExpanded ? "800px" : "350px"};  /* adjusting will also adjust the graphs */
+    min-height: ${(props) => props.summaryPanelExpanded ? "800px" : "350px"};   /* as they calculate via document selector query */
     margin: 10px 10px 0px 10px;
 `;
 
 /**
  * See <Panel> for why we use timeouts here
  */
-const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePanel, summaryPanelExpanded, setSummaryPanelExpanded}) => {
+const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePanel}) => {
 
     /* -----------    STATE MANAGEMENT    ------------------- */
     const [chartToDisplay, setChartToDisplay] = useState(false);
     const [transitionInProgress, setTransitionInProgress] = useState(false);
+    const [summaryPanelExpanded, setSummaryPanelExpanded] = useState(false);
     const goToChart = (chartName, duration=0) => {
         setTransitionInProgress(true);
         setChartToDisplay(chartName);
         setTimeout(() => setTransitionInProgress(false), duration);
     };
+    const addMutationChart = (duration=0) => {
+        setTransitionInProgress(true);
+        setSummaryPanelExpanded(true);
+        setTimeout(() => setTransitionInProgress(false), duration);
+    }
 
 
     /* -------------- DATA TRANSFORMS ----------------- */
@@ -154,7 +160,10 @@ const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePan
             els.push(charts.readsPerSample);
         }
         els.push(charts.referenceHeatmap);
-        if (config.genome.mutationPanel.length > 1) {
+        if (!summaryPanelExpanded && config.genome.mutationPanel.length > 1){
+            addMutationChart();
+        }
+        if (summaryPanelExpanded) {
             els.push(charts.mutationHeatmap);
         }
         return els;
