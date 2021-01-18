@@ -16,7 +16,7 @@ import React from 'react';
 import {mouse, select} from "d3-selection";
 import {calcScales} from "../../utils/commonFunctions";
 import {heatColourScale} from "../../utils/colours";
-import {getRelativeReferenceMapping, getRelativeMutationMapping} from "../../utils/config";
+import {getRelativeReferenceMapping} from "../../utils/config";
 import Container, {Title, HoverInfoBox} from "./styles";
 
 const EMPTY_CELL_COLOUR = "rgba(256, 256, 256, 0.15)"

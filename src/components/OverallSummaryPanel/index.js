@@ -39,15 +39,15 @@ const ContractChart = ({handleClick}) => {
 
 const Container = styled.div`
     width: calc(100% - 30px);
-    height: 350px;              /* adjusting will also adjust the graphs */
-    min-height: 350px;          /* as they calculate via document selector query */
+    height: ${(props) => props.summaryPanelExpanded ? "750px" : "350px"};  /* adjusting will also adjust the graphs */
+    min-height: ${(props) => props.summaryPanelExpanded ? "750px" : "350px"};   /* as they calculate via document selector query */
     margin: 10px 10px 0px 10px;
 `;
 
 /**
  * See <Panel> for why we use timeouts here
  */
-const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePanel}) => {
+const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePanel, summaryPanelExpanded, setSummaryPanelExpanded}) => {
 
     /* -----------    STATE MANAGEMENT    ------------------- */
     const [chartToDisplay, setChartToDisplay] = useState(false);
@@ -154,15 +154,17 @@ const OverallSummaryPanel = ({combinedData, dataPerSample, config, goToSamplePan
             els.push(charts.readsPerSample);
         }
         els.push(charts.referenceHeatmap);
-        els.push(charts.mutationHeatmap);
+        if (config.genome.mutationPanel.length > 1) {
+            els.push(charts.mutationHeatmap);
+        }
         return els;
     };
 
     /* ----------------- R E N D E R ---------------- */
     return (
-        <Container>
+        <Container summaryPanelExpanded={summaryPanelExpanded}>
             <ChartContainer>
-                {transitionInProgress ? null : renderGraphs()}
+                {transitionInProgress ? null : renderGraphs()};
             </ChartContainer>
         </Container>
     )

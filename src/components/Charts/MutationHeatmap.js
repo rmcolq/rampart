@@ -16,7 +16,7 @@ import React from 'react';
 import {mouse, select} from "d3-selection";
 import {calcScales} from "../../utils/commonFunctions";
 import {heatColourScale} from "../../utils/colours";
-import {getRelativeReferenceMapping, getRelativeMutationMapping} from "../../utils/config";
+import {getRelativeMutationMapping} from "../../utils/config";
 import Container, {Title, HoverInfoBox} from "./styles";
 
 const EMPTY_CELL_COLOUR = "rgba(256, 256, 256, 0.15)"
@@ -68,7 +68,7 @@ const drawHeatMap = ({names, referencePanel, data, svg, scales, cellDims, chartG
     let total = 0;
     for (let sampleIdx=0; sampleIdx<names.length; sampleIdx++) {
         for (let refIdx=0; refIdx<referencePanel.length; refIdx++) {
-            const count = parseInt(data[names[sampleIdx]].refMatches[referencePanel[refIdx].name]) || 0;
+            const count = parseInt(data[names[sampleIdx]].mutationMatches[referencePanel[refIdx].name]) || 0;
             if (count > maxCount) {
                 maxCount = count;
             }
@@ -84,8 +84,8 @@ const drawHeatMap = ({names, referencePanel, data, svg, scales, cellDims, chartG
 
     for (let sampleIdx=0; sampleIdx<names.length; sampleIdx++) {
         for (let refIdx=0; refIdx<referencePanel.length; refIdx++) {
-            const count = parseInt(data[names[sampleIdx]].refMatches[referencePanel[refIdx].name]) || 0;
-            const sampleTotal = parseInt(data[names[sampleIdx]].refMatches['total']) || 1;
+            const count = parseInt(data[names[sampleIdx]].mutationMatches[referencePanel[refIdx].name]) || 0;
+            const sampleTotal = parseInt(data[names[sampleIdx]].mutationMatches['total']) || 1;
             const percentOfSample = (100.0 * count) / sampleTotal;
             const percentOfTotal = (100.0 * count) / total;
             const heat = (100.0 * count) / (relativeReferenceMapping ? maxCount : sampleTotal);
@@ -97,7 +97,7 @@ const drawHeatMap = ({names, referencePanel, data, svg, scales, cellDims, chartG
                 percentOfTotal,
                 heat
             };
-            // console.log(names[sampleIdx] + " vs. " + referencePanel[refIdx].name + ": " + data[names[sampleIdx]].refMatches[referencePanel[refIdx].name] + " / " + data[names[sampleIdx]].refMatches['total'])
+            // console.log(names[sampleIdx] + " vs. " + referencePanel[refIdx].name + ": " + data[names[sampleIdx]].mutationMatches[referencePanel[refIdx].name] + " / " + data[names[sampleIdx]].mutationMatches['total'])
             dataIdx++;
         }
     }

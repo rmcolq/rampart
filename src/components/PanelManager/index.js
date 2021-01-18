@@ -21,6 +21,7 @@ import { isEqual } from "lodash";
 const PanelManager = ({dataPerSample, combinedData, config, openConfigSidebar, socket}) => {
     
     /* -----------    STATE MANAGEMENT    ------------------- */
+    const [summaryPanelExpanded, setSummaryPanelExpanded] = useState({});
     const [samplePanelsExpanded, setSamplePanelsExpanded] = useState({});
 
     useEffect(() => {
@@ -72,6 +73,8 @@ const PanelManager = ({dataPerSample, combinedData, config, openConfigSidebar, s
                 key={"overall"}
                 config={config}
                 goToSamplePanel={goToSamplePanel}
+                summaryPanelExpanded={summaryPanelExpanded}
+                setSummaryPanelExpanded={setSummaryPanelExpanded}
             />
             {Object.keys(dataPerSample).map((name) => (
                 <div key={name} ref={refs.current.get(name)}>
