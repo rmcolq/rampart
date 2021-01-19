@@ -1,16 +1,21 @@
+from Bio import SeqIO
+
+rule all:
+    input:
+        expand(config["output_path"]+ "/{filename_stem}_all.csv", filename_stem=config["filename_stem"])
+
 rule first_ref:
     """
     Extract FIRST reference in the panel for coordinates.
     """
     input:
-        ref= config["references_file"]
+        ref=config["references_file"]
     output:
-        temp(config["output_path"] + "/temp/first_ref.fasta")
+        first_ref=temp(config["output_path"] + "/temp/first_ref.fasta")
     run:
-        from Bio import SeqIO
-        records = list(SeqIO.parse(input[0], "fasta"))
+        records = list(SeqIO.parse(input.ref, "fasta"))
         reference_seq = records[0]
-        with open(output[0], "w") as output_handle:
+        with open(output.first_ref, "w") as output_handle:
             SeqIO.write(reference_seq, output_handle, "fasta")
 
 rule read_to_ref_coordinates:
@@ -22,25 +27,25 @@ rule read_to_ref_coordinates:
     relationship with the reference (ignores insertions).
     """
     input:
-        fastq= get_unzipped_fastq,
-        ref= config["output_path"] + "/temp/first_ref.fasta"
+        ref= config["output_path"] + "/temp/first_ref.fasta",
+        fastq= config["reads_fastq"]
     output:
         sam= temp(config["output_path"] + "/temp/{filename_stem}.ref_aligned.sam"),
         fasta= temp(config["output_path"] + "/temp/{filename_stem}.ref_aligned.fasta")
-    threads: config["threads"]
     shell:
         """
         minimap2 -a -x map-ont \
-        --cs \
-        --sam-hit-only \
-        {input.ref:q} \
-        {input.fastq:q} \
-        > {output.sam:q}
+            --cs \
+            --sam-hit-only \
+            {input.ref:q} \
+            {input.fastq:q} \
+            > {output.sam:q}
 
-        apps/gofasta/gofasta sam toMultiAlign \
-        --reference {input.ref:q} \
-        --samfile {output.sam:q} \
-        > {output.fasta:q}
+        datafunk sam_2_fasta \
+            -s {output.sam:q} \
+            -r {input.ref:q} \
+            -o {output.fasta:q} \
+            --pad
         """
 
 rule query_voc:
@@ -53,15 +58,14 @@ rule query_voc:
         variants= config["variants_file"]
     output:
         temp(config["output_path"] + "/temp/{filename_stem}_vars.temp.csv")
-    threads: config["threads"]
     shell:
         """
-        python3 apps/type_variants/type_variants.py \
-        --fasta-in {input.fasta:q} \
-        --variants-config {input.variants:q} \
-        --reference {input.ref:q} \
-        --variants-out {output:q} \
-        --append-genotypes
+        python3 type_variants.py \
+            --fasta-in {input.fasta:q} \
+            --variants-config {input.variants:q} \
+            --reference {input.ref:q} \
+            --variants-out {output:q} \
+            --append-genotypes
         """
 
 rule make_csv:
@@ -69,7 +73,7 @@ rule make_csv:
     This makes a variants csv in correct format.
     """
     input:
-        config["output_path"] + "/temp/{filename_stem}_vars.temp.csv"
+        config["output_path"] + "/temp/{filename_stem}_vars.temp.csv",
     params:
         path_to_script = workflow.current_basedir
     output:
@@ -77,8 +81,27 @@ rule make_csv:
     shell:
         """
         python {params.path_to_script}/parse_voc.py \
-        --in-file {input:q} \
-        --out-file {output:q} \
-        --random
+            --in-file {input:q} \
+            --out-file {output:q} \
+            --random
         """
-#produces a csv report
+
+rule combine_csv:
+    """
+    This rule takes the output CSV from map and variant calling and combines.
+    """
+    input:
+        vars_csv=config["output_path"] + "/temp/{filename_stem}_vars.csv",
+        map_csv=config["mapped_csv"]
+    output:
+        config["output_path"] + "/{filename_stem}_all.csv"
+    shell:
+        """
+        fastafunk add_columns \
+            --in-metadata {input.map_csv} \
+            --in-data {input.vars_csv:q} \
+            --index-column read_name \
+            --join-on read_name \
+            --new-columns variants \
+            --out-metadata {output:q}
+        """

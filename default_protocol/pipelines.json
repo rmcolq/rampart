@@ -7,10 +7,6 @@
 			{
 				"file": "references.fasta",
 				"config_key": "references_file"
-			},
-			{
-				"file": "variants.csv",
-				"config_key": "variants_file"
 			}
 		]
 	},
